@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kahoot Bot Controller</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Particle Canvas Background -->
+    <canvas id="particleCanvas"></canvas>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="glitch" data-text="KAHOOT BOT">KAHOOT BOT</h1>
+            <p class="subtitle">Automated Game Controller</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Game PIN Input -->
+            <div class="input-group">
+                <label>GAME PIN</label>
+                <input type="text" id="gamePin" placeholder="Enter 6-digit PIN" maxlength="6" class="pin-input">
+            </div>
+
+            <!-- Bot Count -->
+            <div class="input-group">
+                <label>BOT COUNT</label>
+                <input type="number" id="botCount" value="50" min="1" max="1000" class="number-input">
+            </div>
+
+            <!-- Bot Name Prefix -->
+            <div class="input-group">
+                <label>NAME PREFIX</label>
+                <input type="text" id="namePrefix" placeholder="Bot_" value="Bot_" class="text-input">
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="mode-toggle">
+                <button id="randomMode" class="mode-btn active">🎲 RANDOM MODE</button>
+                <button id="manualMode" class="mode-btn">🎮 MANUAL MODE</button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button id="startBtn" class="btn btn-primary">🚀 FLOOD GAME</button>
+                <button id="stopBtn" class="btn btn-danger" disabled>⛔ STOP BOTS</button>
+                <button id="clearBtn" class="btn btn-warning">🗑️ CLEAR ALL</button>
+            </div>
+
+            <!-- Virtual Joystick (Manual Mode) -->
+            <div id="joystickContainer" class="joystick-container hidden">
+                <div class="joystick-base">
+                    <div class="joystick-thumb"></div>
+                </div>
+                <div class="joystick-instructions">Drag to control answer selection</div>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-label">ACTIVE BOTS</div>
+                <div class="stat-value" id="activeBots">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">TOTAL ANSWERS</div>
+                <div class="stat-value" id="totalAnswers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">GAME STATUS</div>
+                <div class="stat-value" id="gameStatus">Idle</div>
+            </div>
+        </div>
+
+        <!-- Event Feed -->
+        <div class="event-feed">
+            <div class="feed-header">
+                <span>📡 LIVE EVENT FEED</span>
+                <button id="clearFeed" class="clear-feed">Clear</button>
+            </div>
+            <div id="eventList" class="event-list"></div>
+        </div>
+    </div>
+
+    <script src="bot.js"></script>
+    <script src="effects.js"></script>
+</body>
+              </html>
