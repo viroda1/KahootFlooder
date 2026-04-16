@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAHOLY · Live Kahoot Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0c10;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #eef2ff;
+            padding: 2rem 1.5rem;
+        }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .hero { text-align: center; margin-bottom: 3rem; }
+        h1 {
+            font-size: 4rem;
+            background: linear-gradient(135deg, #fff, #a855f7, #ec4899);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .status-bar {
+            background: #11161f;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #a855f7;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .card {
+            background: #11161f;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid #1e2a3a;
+        }
+        input, select, button {
+            background: #0a0f16;
+            border: 1px solid #2d3a4e;
+            color: white;
+            padding: 0.7rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+        }
+        button {
+            background: #7c3aed;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover { background: #6d28d9; }
+        button.danger { background: #dc2626; }
+        button.danger:hover { background: #b91c1c; }
+        .log-box {
+            background: #0b0f16;
+            border-radius: 1rem;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+        .log-entry { padding: 0.3rem 0; border-bottom: 1px solid #1e2a3a; color: #86efac; }
+        .badge {
+            background: #1e293b;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+        @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } h1 { font-size: 2.5rem; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>KAHOLY</h1>
+        <p>Live bot controller · real Kahoot flooding</p>
+    </div>
+
+    <div class="status-bar">
+        <span>🔌 Backend: <span id="backendStatus">❌ Not connected</span></span>
+        <span>🤖 Active bots: <span id="botCount">0</span></span>
+        <span>🏆 Podium: <span id="podiumStatus">—</span></span>
+    </div>
+
+    <div class="grid-2">
+        <!-- Control Panel -->
+        <div class="card">
+            <h2>🎮 Bot Control</h2>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="text" id="gamePin" placeholder="Game PIN" value="123456">
+                <input type="text" id="botNamePrefix" placeholder="Bot name prefix" value="KAHOLY">
+                <input type="number" id="botAmount" placeholder="Number of bots" value="50" min="1" max="500">
+                <select id="answerMode">
+                    <option value="random">Random answers</option>
+                    <option value="manual">Manual mode (you control)</option>
+                    <option value="smart">Smart mode (auto-correct)</option>
+                </select>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button id="startBtn">🚀 Start Flood</button>
+                    <button id="stopBtn" class="danger">🛑 Stop All</button>
+                </div>
+                <div id="manualControls" style="display: none;">
+                    <hr style="margin: 0.5rem 0; border-color:#1e2a3a;">
+                    <p>Manual answer:</p>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="answerA">A</button><button id="answerB">B</button>
+                        <button id="answerC">C</button><button id="answerD">D</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats & Info -->
+        <div class="card">
+            <h2>📊 Game Analytics</h2>
+            <div id="stats">
+                <p>✅ Correct answers: <span id="correctCount">0</span></p>
+                <p>❌ Wrong: <span id="wrongCount">0</span></p>
+                <p>⚡ Current Q: <span id="currentQuestion">—</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Log -->
+    <div class="card" style="margin-top: 1.5rem;">
+        <h2>📡 Live Event Feed</h2>
+        <div class="log-box" id="logBox">
+            <div class="log-entry">▶️ Ready. Connect backend to start.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === CONFIG: CHANGE THIS TO YOUR BACKEND URL ===
+    const BACKEND_URL = 'http://localhost:3000';  // Termux: your local IP:3000
+    
+    let ws = null;
+    let activeBots = 0;
+    
+    function addLog(msg) {
+        const logBox = document.getElementById('logBox');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.textContent = `▶️ ${new Date().toLocaleTimeString()} — ${msg}`;
+        logBox.appendChild(entry);
+        entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    function updateStatus() {
+        document.getElementById('backendStatus').innerText = ws && ws.readyState === WebSocket.OPEN ? '✅ Connected' : '❌ Not connected';
+        document.getElementById('botCount').innerText = activeBots;
+    }
+    
+    // WebSocket connection
+    function connectWebSocket() {
+        ws = new WebSocket(BACKEND_URL.replace('http', 'ws'));
+        ws.onopen = () => {
+            addLog('Backend connected successfully');
+            updateStatus();
+        };
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'log') addLog(data.message);
+            if (data.type === 'stats') {
+                document.getElementById('correctCount').innerText = data.correct || 0;
+                document.getElementById('wrongCount').innerText = data.wrong || 0;
+                document.getElementById('currentQuestion').innerText = data.question || '—';
+                activeBots = data.activeBots || 0;
+                updateStatus();
+            }
+            if (data.type === 'podium') {
+                document.getElementById('podiumStatus').innerHTML = `🥇 ${data.first}`;
+                addLog(`🏆 PODIUM: 1st - ${data.first}`);
+            }
+        };
+        ws.onclose = () => { updateStatus(); addLog('Disconnected from backend'); };
+        ws.onerror = () => addLog('WebSocket error');
+    }
+    
+    // Send command to backend
+    function sendCommand(cmd, payload = {}) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            addLog('ERROR: Backend not connected');
+            return false;
+        }
+        ws.send(JSON.stringify({ command: cmd, ...payload }));
+        return true;
+    }
+    
+    // UI event handlers
+    document.getElementById('startBtn').onclick = () => {
+        const pin = document.getElementById('gamePin').value;
+        const prefix = document.getElementById('botNamePrefix').value;
+        const amount = parseInt(document.getElementById('botAmount').value);
+        const mode = document.getElementById('answerMode').value;
+        if (!pin) return addLog('Enter game PIN');
+        sendCommand('start_flood', { pin, prefix, amount, mode });
+        addLog(`Starting flood: ${amount} bots to game ${pin} (${mode} mode)`);
+    };
+    
+    document.getElementById('stopBtn').onclick = () => {
+        sendCommand('stop_all');
+        addLog('Stopping all bots');
+    };
+    
+    // Manual mode answer buttons
+    const modeSelect = document.getElementById('answerMode');
+    const manualDiv = document.getElementById('manualControls');
+    modeSelect.onchange = () => {
+        manualDiv.style.display = modeSelect.value === 'manual' ? 'block' : 'none';
+    };
+    
+    ['A','B','C','D'].forEach(letter => {
+        document.getElementById(`answer${letter}`).onclick = () => {
+            if (modeSelect.value !== 'manual') return addLog('Enable manual mode first');
+            sendCommand('manual_answer', { answer: letter });
+            addLog(`🎮 Manual answer: ${letter}`);
+        };
+    });
+    
+    // Connect on load
+    connectWebSocket();
+</script>
+</body>
+  </html>
