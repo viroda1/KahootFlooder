@@ -46,6 +46,7 @@
             padding: 0.7rem 1rem;
             border-radius: 0.75rem;
             font-size: 1rem;
+            width: 100%;
         }
         button {
             background: #7c3aed;
@@ -67,12 +68,8 @@
             margin-top: 1rem;
         }
         .log-entry { padding: 0.3rem 0; border-bottom: 1px solid #1e2a3a; color: #86efac; }
-        .badge {
-            background: #1e293b;
-            padding: 0.2rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-        }
+        .flex-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .flex-row button { flex: 1; }
         @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } h1 { font-size: 2.5rem; } }
     </style>
 </head>
@@ -90,7 +87,6 @@
     </div>
 
     <div class="grid-2">
-        <!-- Control Panel -->
         <div class="card">
             <h2>🎮 Bot Control</h2>
             <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -102,14 +98,14 @@
                     <option value="manual">Manual mode (you control)</option>
                     <option value="smart">Smart mode (auto-correct)</option>
                 </select>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <div class="flex-row">
                     <button id="startBtn">🚀 Start Flood</button>
                     <button id="stopBtn" class="danger">🛑 Stop All</button>
                 </div>
                 <div id="manualControls" style="display: none;">
                     <hr style="margin: 0.5rem 0; border-color:#1e2a3a;">
                     <p>Manual answer:</p>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="flex-row">
                         <button id="answerA">A</button><button id="answerB">B</button>
                         <button id="answerC">C</button><button id="answerD">D</button>
                     </div>
@@ -117,7 +113,6 @@
             </div>
         </div>
 
-        <!-- Stats & Info -->
         <div class="card">
             <h2>📊 Game Analytics</h2>
             <div id="stats">
@@ -128,7 +123,6 @@
         </div>
     </div>
 
-    <!-- Live Log -->
     <div class="card" style="margin-top: 1.5rem;">
         <h2>📡 Live Event Feed</h2>
         <div class="log-box" id="logBox">
@@ -138,8 +132,8 @@
 </div>
 
 <script>
-    // === CONFIG: CHANGE THIS TO YOUR BACKEND URL ===
-    const BACKEND_URL = 'http://localhost:3000';  // Termux: your local IP:3000
+    // === YOUR TERMUX IP ===
+    const BACKEND_URL = 'ws://192.168.1.157:3000';
     
     let ws = null;
     let activeBots = 0;
@@ -154,13 +148,12 @@
     }
     
     function updateStatus() {
-        document.getElementById('backendStatus').innerText = ws && ws.readyState === WebSocket.OPEN ? '✅ Connected' : '❌ Not connected';
+        document.getElementById('backendStatus').innerHTML = ws && ws.readyState === WebSocket.OPEN ? '✅ Connected' : '❌ Not connected';
         document.getElementById('botCount').innerText = activeBots;
     }
     
-    // WebSocket connection
     function connectWebSocket() {
-        ws = new WebSocket(BACKEND_URL.replace('http', 'ws'));
+        ws = new WebSocket(BACKEND_URL);
         ws.onopen = () => {
             addLog('Backend connected successfully');
             updateStatus();
@@ -184,7 +177,6 @@
         ws.onerror = () => addLog('WebSocket error');
     }
     
-    // Send command to backend
     function sendCommand(cmd, payload = {}) {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             addLog('ERROR: Backend not connected');
@@ -194,7 +186,6 @@
         return true;
     }
     
-    // UI event handlers
     document.getElementById('startBtn').onclick = () => {
         const pin = document.getElementById('gamePin').value;
         const prefix = document.getElementById('botNamePrefix').value;
@@ -210,7 +201,6 @@
         addLog('Stopping all bots');
     };
     
-    // Manual mode answer buttons
     const modeSelect = document.getElementById('answerMode');
     const manualDiv = document.getElementById('manualControls');
     modeSelect.onchange = () => {
@@ -225,8 +215,7 @@
         };
     });
     
-    // Connect on load
     connectWebSocket();
 </script>
 </body>
-  </html>
+                                                                </html>
